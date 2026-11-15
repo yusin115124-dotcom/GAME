@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>幸運號碼抽抽樂</title>
+<style>
+:root{--ink:#26334a;--pink:#ff8eaa;--yellow:#ffd76a;--blue:#8ed8ee;--mint:#a9e6c5;--paper:#fffdf7}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink);background:radial-gradient(circle at 12% 15%,#fff1bd 0 7%,transparent 7.5%),radial-gradient(circle at 88% 20%,#d9f5ff 0 8%,transparent 8.5%),linear-gradient(135deg,#fff8ec,#f1f9ff);padding:22px}
+.wrap{max-width:950px;margin:auto}
+header{text-align:center;margin:10px 0 22px}
+h1{font-size:clamp(2rem,5vw,3.2rem);margin:0;color:#3b5274;letter-spacing:2px}
+.subtitle{margin:8px 0;color:#71809a}
+.panel{background:#ffffffdc;border:3px solid white;border-radius:26px;padding:clamp(16px,3vw,28px);box-shadow:0 12px 30px #526b8818;margin-bottom:18px}
+.settings{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+label{font-weight:800;font-size:.95rem;display:block;margin-bottom:7px}
+input{width:100%;border:2px solid #dce8f1;border-radius:13px;padding:12px;font-size:1rem;color:var(--ink);background:#fbfdff}
+input:focus{outline:3px solid #b9e8f5;border-color:#6fc5df}
+.hint{font-size:.83rem;color:#7b8798;margin-top:6px}
+.draw-area{text-align:center;padding:22px 10px 14px}
+.number-ball{width:min(48vw,230px);height:min(48vw,230px);min-width:150px;min-height:150px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#fff,#ffe9a6);border:9px solid #fff;box-shadow:0 10px 0 #f0cf78,0 16px 28px #8d79502b;font-size:clamp(3.6rem,12vw,6rem);font-weight:1000;color:#e47b5d;text-shadow:2px 3px #fff;transition:transform .2s}
+.number-ball.pop{animation:pop .45s ease}
+@keyframes pop{0%{transform:scale(.7) rotate(-10deg)}65%{transform:scale(1.12) rotate(5deg)}100%{transform:scale(1)}}
+button{border:0;border-radius:16px;padding:13px 20px;font-size:1rem;font-weight:900;cursor:pointer;transition:transform .12s,filter .12s}
+button:hover{filter:brightness(1.03);transform:translateY(-2px)}
+button:active{transform:translateY(1px)}
+.primary{background:var(--pink);color:#fff;box-shadow:0 5px 0 #e87594;font-size:1.2rem;padding:15px 36px}
+.secondary{background:#e5f6fb;color:#42677c}
+.danger{background:#fff0ed;color:#bd6555}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.status{font-weight:800;color:#71809a;min-height:24px;margin:10px}
+.stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.pill{background:#f1f7fb;border-radius:999px;padding:8px 14px;font-weight:800}
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.section-title{font-size:1.15rem;font-weight:1000;margin:0 0 12px}
+.history{display:flex;flex-wrap:wrap;gap:8px;min-height:44px}
+.chip{background:#fff0c9;border:2px solid #ffe29b;border-radius:12px;padding:8px 12px;font-weight:900}
+.empty{color:#99a4b2;font-size:.92rem}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.footer{text-align:center;color:#8994a4;font-size:.8rem;margin:18px 0 4px}
+@media(max-width:650px){.settings{grid-template-columns:1fr 1fr}.bottom{grid-template-columns:1fr}.settings>div:last-child{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🌟 幸運號碼抽抽樂 🌟</h1>
+  <p class="subtitle">準備好了嗎？看看今天的幸運號碼是誰！</p>
+</header>
+<section class="panel">
+  <div class="settings">
+    <div><label for="min">從幾號開始？</label><input id="min" type="number" min="0" value="1"></div>
+    <div><label for="max">到幾號結束？</label><input id="max" type="number" min="1" value="30"></div>
+    <div><label for="count">每次抽幾個？</label><input id="count" type="number" min="1" max="30" value="1"></div>
+  </div>
+  <div style="margin-top:14px">
+    <label for="exclude">不參加抽籤的號碼（選填）</label>
+    <input id="exclude" type="text" placeholder="例如：3, 8, 15">
+    <div class="hint">多個號碼請用逗號或空格隔開。可用來排除請假或已完成任務的座號。</div>
+  </div>
+</section>
+<section class="panel draw-area">
+  <div class="number-ball" id="ball" aria-live="polite">?</div>
+  <div class="status" id="status">設定好號碼範圍，按下按鈕開始抽籤！</div>
+  <button class="primary" id="draw">🎲 開始抽籤！</button>
+  <div class="stats">
+    <span class="pill">剩餘號碼：<b id="remaining">30</b></span>
+    <span class="pill">已抽出：<b id="drawn">0</b></span>
+  </div>
+</section>
+<div class="bottom">
+  <section class="panel">
+    <h2 class="section-title">🎉 本次抽籤結果</h2>
+    <div class="history" id="results"><span class="empty">抽出的號碼會出現在這裡。</span></div>
+    <div class="actions">
+      <button class="secondary" id="copy">📋 複製結果</button>
+      <button class="danger" id="reset">↻ 全部重新抽</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2 class="section-title">💡 小提醒</h2>
+    <ul style="line-height:1.9;padding-left:22px;margin:0">
+      <li>每個號碼抽出後不會重複。</li>
+      <li>可調整起始號碼、結束號碼和每次抽取數量。</li>
+      <li>修改設定後，按「全部重新抽」即可套用新設定。</li>
+      <li>抽籤結果只會保留在目前這個頁面，重新整理後會清空。</li>
+    </ul>
+  </section>
+</div>
+<p class="footer">適合班級點名、座號抽問、上台分享與課堂小活動 ✨</p>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let pool=[], history=[], busy=false;
+function parseSettings(){
+ const min=Number($('min').value), max=Number($('max').value), count=Number($('count').value);
+ if(!Number.isInteger(min)||!Number.isInteger(max)||!Number.isInteger(count)||max<min||count<1||count>30){alert('請確認號碼範圍與抽取數量喔！');return null}
+ const excluded=new Set(($('exclude').value.match(/\\d+/g)||[]).map(Number));
+ const all=[];for(let n=min;n<=max;n++)if(!excluded.has(n))all.push(n);
+ if(!all.length){alert('目前沒有可以抽取的號碼，請調整設定！');return null}
+ if(count>all.length){alert(`目前只有 ${all.length} 個號碼可以抽，請減少每次抽取數量。`);return null}
+ return {all,count};
+}
+function update(){
+ $('remaining').textContent=pool.length;
+ $('drawn').textContent=history.length;
+ $('draw').disabled=busy||pool.length===0;
+ $('draw').textContent=pool.length===0?'🎉 全部抽完了！':'🎲 開始抽籤！';
+ $('results').innerHTML=history.length?history.map((n,i)=>`<span class="chip">${i+1}. ${n} 號</span>`).join(''):'<span class="empty">抽出的號碼會出現在這裡。</span>';
+}
+function reset(){
+ const s=parseSettings();if(!s)return;
+ pool=[...s.all];history=[];$('ball').textContent='?';
+ $('status').textContent='準備完成！誰會是今天的幸運兒呢？';update();
+}
+function draw(){
+ if(busy||!pool.length)return;
+ const sCount=Number($('count').value);
+ const count=Math.min(sCount,pool.length);
+ busy=true;update();$('status').textContent='號碼正在轉呀轉……';
+ let ticks=0;
+ const timer=setInterval(()=>{
+   $('ball').textContent=pool[Math.floor(Math.random()*pool.length)];
+   ticks++;
+   if(ticks>=12){
+     clearInterval(timer);
+     const picked=[];
+     for(let i=0;i<count;i++){
+       const idx=Math.floor(Math.random()*pool.length);
+       picked.push(pool.splice(idx,1)[0]);
+     }
+     history.push(...picked);
+     $('ball').textContent=picked.length===1?picked[0]:picked.join('、');
+     $('status').textContent=picked.length===1?`🎊 恭喜！抽中 ${picked[0]} 號！`:`🎊 恭喜！抽中 ${picked.join('、')} 號！`;
+     $('ball').classList.remove('pop');void $('ball').offsetWidth;$('ball').classList.add('pop');
+     busy=false;update();
+   }
+ },85);
+}
+$('draw').addEventListener('click',draw);
+$('reset').addEventListener('click',reset);
+$('copy').addEventListener('click',async()=>{
+ if(!history.length){alert('目前還沒有抽籤結果喔！');return}
+ const text=history.map((n,i)=>`${i+1}. ${n}號`).join('\\n');
+ try{await navigator.clipboard.writeText(text);alert('結果已複製！')}catch(e){prompt('請複製以下結果：',text)}
+});
+['min','max','count','exclude'].forEach(id=>$(id).addEventListener('change',()=>{$('status').textContent='設定已變更，請按「全部重新抽」套用。'}));
+reset();
+</script>
+</body>
+</html>
